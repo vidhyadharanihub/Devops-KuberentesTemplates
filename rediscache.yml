@@ -1,0 +1,84 @@
+Each environment has its own Redis endpoint.
+
+For example:
+
+DEV:
+redis-dev.xxxx.cache.amazonaws.com
+
+QA:
+redis-qa.xxxx.cache.amazonaws.com
+
+PROD:
+redis-prod.xxxx.cache.amazonaws.com
+
+start:
+1. deployment.yaml (with redis cache in env variable):
+
+spec:
+  containers:
+    - name: my-app
+      env:
+        - name: REDIS_HOST
+          value: "my-redis.xxxxxx.cache.amazonaws.com"
+        - name: REDIS_PORT
+          value: "6379"
+          #Here the application Pod receives the Redis endpoint as an environment variable.
+
+  2. Kubernetes ConfigMap
+
+Instead of putting it directly in the Deployment:
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  REDIS_HOST: "my-redis.xxxxxx.cache.amazonaws.com"
+  REDIS_PORT: "6379"
+
+Then the Deployment references the ConfigMap:
+
+envFrom:
+  - configMapRef:
+      name: app-config
+
+
+  3. Helm values.yaml
+
+In many enterprise Kubernetes environments, especially when using Helm, you may see:
+
+redis:
+  host: my-redis.xxxxxx.cache.amazonaws.com
+  port: 6379
+
+And the Helm template uses that value to generate the Kubernetes Deployment.
+
+
+
+4. Terraform
+
+This is also very common when Redis itself is created by Terraform.
+
+Terraform creates ElastiCache:
+
+Terraform
+   ↓
+ElastiCache
+   ↓
+AWS generates Redis endpoint
+
+Terraform can then pass that endpoint into your Kubernetes/Helm configuration.
+
+So you might have:
+
+Terraform
+   │
+   ├── creates ElastiCache
+   │
+   ├── gets Redis endpoint
+   │
+   └── passes endpoint to Helm/Kubernetes
+                         ↓
+                    Deployment
+                         ↓
+                    Application Pod
